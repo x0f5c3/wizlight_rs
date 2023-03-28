@@ -3,6 +3,27 @@ name = "wizlight_rs"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+color-eyre = "0.6.2"
+rayon = "1.7.0"
+
+[dependencies.parking_lot]
+version = "0.12.1"
+features = ["send_guard", "serde"]
+
+
+[dependencies.hashbrown]
+version = "0.13.2"
+features = ["rayon", "serde"]
+
+
+[dependencies.serde]
+version = "1.0.158"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1.0.95"
+features = ["preserve_order", "alloc", "unbounded_depth"]
+
+[dependencies.socket2]
+version = "0.5.1"
