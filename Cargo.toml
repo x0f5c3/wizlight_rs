@@ -3,7 +3,13 @@ name = "wizlight_rs"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies.tokio]
+version = "1.27.0"
+features = ["full"]
+
+
 [dependencies]
+pnet = "0.33.0"
 color-eyre = "0.6.2"
 rayon = "1.7.0"
 

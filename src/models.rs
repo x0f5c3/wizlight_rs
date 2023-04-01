@@ -8,11 +8,20 @@ pub struct DiscoveredBulb {
     mac_address: String,
 }
 
-pub struct BulbRegistry {
-    bulbs_by_mac: RwLock<HashMap<String, DiscoveredBulb>>,
+impl DiscoveredBulb {
+    pub fn new(ip: String, mac: String) -> Self {
+        Self {
+            ip_address: ip,
+            mac_address: mac,
+        }
+    }
 }
 
-impl BulbRegistry {
+pub struct BulbRegistry<'a> {
+    bulbs_by_mac: RwLock<HashMap<&'a str, DiscoveredBulb>>,
+}
+
+impl<'a> BulbRegistry<'a> {
     pub fn new() -> Self {
         Self {
             bulbs_by_mac: RwLock::new(HashMap::new()),
@@ -20,7 +29,7 @@ impl BulbRegistry {
     }
     pub fn register(&self, bulb: DiscoveredBulb) {
         let mut w = self.bulbs_by_mac.write();
-        w.insert(bulb.mac_address.clone(), bulb);
+        w.insert(&bulb.mac_address, bulb);
     }
     pub fn bulbs(&self) -> Vec<DiscoveredBulb> {
         let r = self.bulbs_by_mac.read();
