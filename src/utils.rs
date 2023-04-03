@@ -1,11 +1,10 @@
 use color_eyre::eyre::WrapErr;
 use color_eyre::Result;
-use pnet::datalink::{interfaces, NetworkInterface};
-use pnet::ipnetwork::IpNetwork;
+use pnet::datalink::interfaces;
+
 use rayon::prelude::*;
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use tokio::net::UdpSocket;
 
 pub(crate) fn hex_to_percent(hex_val: f64) -> f64 {
     ((hex_val / 255.0) * 100.0).round()

@@ -17,11 +17,11 @@ impl DiscoveredBulb {
     }
 }
 
-pub struct BulbRegistry<'a> {
-    bulbs_by_mac: RwLock<HashMap<&'a str, DiscoveredBulb>>,
+pub struct BulbRegistry {
+    bulbs_by_mac: RwLock<HashMap<String, DiscoveredBulb>>,
 }
 
-impl<'a> BulbRegistry<'a> {
+impl BulbRegistry {
     pub fn new() -> Self {
         Self {
             bulbs_by_mac: RwLock::new(HashMap::new()),
@@ -29,7 +29,7 @@ impl<'a> BulbRegistry<'a> {
     }
     pub fn register(&self, bulb: DiscoveredBulb) {
         let mut w = self.bulbs_by_mac.write();
-        w.insert(&bulb.mac_address, bulb);
+        w.insert(bulb.mac_address.clone(), bulb);
     }
     pub fn bulbs(&self) -> Vec<DiscoveredBulb> {
         let r = self.bulbs_by_mac.read();

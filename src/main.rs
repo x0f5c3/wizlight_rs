@@ -1,14 +1,25 @@
+#![allow(dead_code)]
 mod discovery;
 mod models;
 mod utils;
 
-use crate::discovery::PORT;
+use color_eyre::eyre::eyre;
+use color_eyre::Result;
 use discovery::BroadcastProtocol;
-use models::BulbRegistry;
+use tracing::level_filters::LevelFilter;
+use tracing::{info, Level};
 
-fn main() {
-    let brod_addr = format!("255.255.255.255:{}", PORT);
-    let mut proto = BroadcastProtocol::new(BulbRegistry::new(), &brod_addr).unwrap();
-    let disco = proto.discover().unwrap();
+fn main() -> Result<()> {
+    tracing_subscriber::fmt()
+        .pretty()
+        .with_max_level(LevelFilter::from_level(Level::TRACE))
+        .with_level(true)
+        .with_line_number(true)
+        .try_init()
+        .map_err(|e| eyre!("Failed to init tracing subscriber {e}"))?;
+    info!("Initialized subscriber");
+    let mut proto = BroadcastProtocol::new(None)?;
+    let disco = proto.discover()?;
     println!("{:?}", disco);
+    Ok(())
 }
