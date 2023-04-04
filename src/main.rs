@@ -18,8 +18,8 @@ fn main() -> Result<()> {
         .try_init()
         .map_err(|e| eyre!("Failed to init tracing subscriber {e}"))?;
     info!("Initialized subscriber");
-    let mut proto = BroadcastProtocol::new(None)?;
-    let disco = proto.discover()?;
-    println!("{:?}", disco);
+    let mut proto = BroadcastProtocol::new(None, None)?;
+    proto.discover()?;
+    info!("{:?}", proto.reg.bulbs());
     Ok(())
 }
