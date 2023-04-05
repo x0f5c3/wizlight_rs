@@ -114,7 +114,6 @@ impl BroadcastProtocol {
                         to_reg.ip_address, to_reg.mac_address
                     );
                     self.reg.register(to_reg);
-                    return Ok(());
                 }
             }
         }
