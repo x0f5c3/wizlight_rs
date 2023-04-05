@@ -5,6 +5,14 @@ use pnet::datalink::interfaces;
 use rayon::prelude::*;
 use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use time::format_description;
+
+pub(crate) fn get_timestamp() -> Result<String> {
+    let fmt = format_description::parse("[day]_[month]_[year]_[hour]_[minute]")?;
+    time::OffsetDateTime::now_local()?
+        .format(&fmt)
+        .wrap_err("Failed to format timestamp")
+}
 
 pub(crate) fn hex_to_percent(hex_val: f64) -> f64 {
     ((hex_val / 255.0) * 100.0).round()

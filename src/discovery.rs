@@ -5,8 +5,10 @@ use color_eyre::Result;
 
 use std::fs;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket};
 use std::time::Duration;
+use time::Instant;
 use tracing::{debug, error, info, instrument, warn};
 
 pub const PORT: u16 = 38899;
@@ -75,7 +77,25 @@ impl BroadcastProtocol {
     pub fn discover(&mut self) -> Result<()> {
         self.transport
             .send_to(REGISTER_MESSAGE.as_bytes(), self.broadcast_addr)?;
-        loop {
+        let start = Instant::now();
+        let sp = ProgressBar::new_spinner();
+        sp.enable_steady_tick(Duration::from_millis(120));
+        sp.set_style(
+            ProgressStyle::with_template("{spinner:.blue} {msg}")?
+                // For more spinners check out the cli-spinners project:
+                // https://github.com/sindresorhus/cli-spinners/blob/master/spinners.json
+                .tick_strings(&[
+                    "▹▹▹▹▹",
+                    "▸▹▹▹▹",
+                    "▹▸▹▹▹",
+                    "▹▹▸▹▹",
+                    "▹▹▹▸▹",
+                    "▹▹▹▹▸",
+                    "▪▪▪▪▪",
+                ]),
+        );
+        sp.set_message("Discovering...");
+        while start.elapsed().as_seconds_f64() < DEFAULT_WAIT_TIME {
             let buf = &mut [0u8; 1024];
             let (n, addr) = self.transport.recv_from(buf)?;
             if let SocketAddr::V4(a) = addr {
@@ -98,6 +118,8 @@ impl BroadcastProtocol {
                 }
             }
         }
+        sp.finish_with_message(format!("Discovered {} bulbs", self.reg.bulbs().len()));
+        Ok(())
     }
 }
 
