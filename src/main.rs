@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
         .try_init()
         .map_err(|e| eyre!("Failed to init subscriber {e}"))?;
     info!("Initialized subscriber");
-    let mut proto = BroadcastProtocol::new(None, None)?;
+    let mut proto = BroadcastProtocol::new(None)?;
     proto.discover().await?;
     info!("{:?}", proto.reg.bulbs());
     Ok(())
