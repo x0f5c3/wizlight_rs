@@ -1,14 +1,17 @@
 use crate::models::{BulbRegistry, DiscoveredBulb, RegistrationMessage};
-use crate::utils::{create_udp_broadcast, get_local_adddrs};
+use crate::utils::{create_udp_broadcast, get_local_adddrs, get_timestamp};
 
 use color_eyre::Result;
 
 use std::fs;
+use std::io::ErrorKind;
 
+use color_eyre::eyre::{eyre, WrapErr};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket};
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use time::Instant;
+use tokio::net::UdpSocket;
 use tracing::{debug, error, info, instrument, warn};
 
 pub const PORT: u16 = 38899;
@@ -20,7 +23,6 @@ pub struct BroadcastProtocol {
     broadcast_addr: SocketAddr,
     transport: UdpSocket,
     local_addrs: Vec<String>,
-    timeout: Duration,
 }
 
 impl BroadcastProtocol {
@@ -30,8 +32,6 @@ impl BroadcastProtocol {
             .and_then(|x| x.parse::<SocketAddr>().ok())
             .unwrap_or(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::BROADCAST, PORT)));
         let transport = create_udp_broadcast(38899)?;
-        transport.set_read_timeout(timeout_m.or(Some(Duration::from_secs(5))))?;
-        let timeout = timeout_m.unwrap_or(Duration::from_secs(5));
         debug!("Created the udp socket");
         let reg = BulbRegistry::new();
         Ok(Self {
@@ -39,25 +39,28 @@ impl BroadcastProtocol {
             broadcast_addr,
             transport,
             local_addrs: get_local_adddrs(),
-            timeout,
         })
     }
     #[instrument(skip(self))]
-    pub fn recv_from(&mut self) -> Result<(Vec<u8>, SocketAddr)> {
+    pub async fn recv_from(&mut self) -> Result<(Vec<u8>, SocketAddr)> {
+        let start = Instant::now();
         let buf = &mut [0u8; 1024];
-        let (n, addr) = self.transport.recv_from(buf)?;
+        let (n, addr) = self.transport.recv_from(buf).await?;
         Ok((buf[0..n].to_vec(), addr))
     }
     #[instrument(skip(self))]
-    pub fn recv_foreign(&mut self) -> Result<(Vec<u8>, SocketAddr)> {
+    pub async fn recv_foreign(&mut self) -> Result<(Vec<u8>, SocketAddr)> {
         loop {
             let buf = &mut [0u8; 1024];
-            let (n, addr) = self.transport.recv_from(buf)?;
+            let (n, addr) = self.transport.recv_from(buf).await?;
             if let SocketAddr::V4(a) = addr {
                 let ad = a.ip().to_string();
                 if !self.local_addrs.contains(&ad) {
                     info!("Received {} bytes from {}", n, ad);
-                    let res = fs::write(format!("resp_{}.json", &ad), &buf[0..n]);
+                    let res = fs::write(
+                        format!("resp_{}_{}.json", &ad, get_timestamp()?),
+                        &buf[0..n],
+                    );
                     if let Err(e) = res {
                         error!("Failed to write response to file: {e}");
                     }
@@ -67,16 +70,17 @@ impl BroadcastProtocol {
         }
     }
     #[instrument(skip(self))]
-    pub(crate) fn recv_msg(&mut self) -> Result<RegistrationMessage> {
-        let (b, addr) = self.recv_foreign()?;
+    pub(crate) async fn recv_msg(&mut self) -> Result<RegistrationMessage> {
+        let (b, addr) = self.recv_foreign().await?;
         let mut msg: RegistrationMessage = serde_json::from_slice(b.as_slice())?;
         msg.ip = Some(addr);
         Ok(msg)
     }
     #[instrument(skip(self))]
-    pub fn discover(&mut self) -> Result<()> {
+    pub async fn discover(&mut self) -> Result<()> {
         self.transport
-            .send_to(REGISTER_MESSAGE.as_bytes(), self.broadcast_addr)?;
+            .send_to(REGISTER_MESSAGE.as_bytes(), self.broadcast_addr)
+            .await?;
         let start = Instant::now();
         let sp = ProgressBar::new_spinner();
         sp.enable_steady_tick(Duration::from_millis(120));
@@ -97,7 +101,7 @@ impl BroadcastProtocol {
         sp.set_message("Discovering...");
         while start.elapsed().as_seconds_f64() < DEFAULT_WAIT_TIME {
             let buf = &mut [0u8; 1024];
-            let (n, addr) = self.transport.recv_from(buf)?;
+            let (n, addr) = self.transport.recv_from(buf).await?;
             if let SocketAddr::V4(a) = addr {
                 let ad = a.ip().to_string();
                 debug!("Received from {ad}");

@@ -4,8 +4,9 @@ use pnet::datalink::interfaces;
 
 use rayon::prelude::*;
 use socket2::{Domain, Protocol, Socket, Type};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket as StdSocket};
 use time::format_description;
+use tokio::net::UdpSocket;
 
 pub(crate) fn get_timestamp() -> Result<String> {
     let fmt = format_description::parse("[day]_[month]_[year]_[hour]_[minute]")?;
@@ -58,5 +59,7 @@ pub fn create_udp(listen_port: u16, reuseaddr: bool, broadcast: bool) -> Result<
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), listen_port);
     let addr = addr.into();
     sock.bind(&addr)?;
-    Ok(sock.into())
+    let res: StdSocket = sock.into();
+    res.set_nonblocking(true)?;
+    UdpSocket::from_std(res).wrap_err("Can't convert to tokio socket")
 }

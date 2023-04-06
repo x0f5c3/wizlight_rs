@@ -11,7 +11,8 @@ use tracing::level_filters::LevelFilter;
 use tracing::{info, Level};
 use tracing_appender::rolling;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let log_f = rolling::hourly("./", "runtime.log");
     let (non_block, _guard) = tracing_appender::non_blocking(log_f);
     tracing_subscriber::fmt::Subscriber::builder()
@@ -25,7 +26,7 @@ fn main() -> Result<()> {
         .map_err(|e| eyre!("Failed to init subscriber {e}"))?;
     info!("Initialized subscriber");
     let mut proto = BroadcastProtocol::new(None, None)?;
-    proto.discover()?;
+    proto.discover().await?;
     info!("{:?}", proto.reg.bulbs());
     Ok(())
 }
