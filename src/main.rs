@@ -1,6 +1,12 @@
 #![allow(dead_code)]
+mod bulb;
+mod bulblibrary;
 mod discovery;
+mod errors;
 mod models;
+mod protocol;
+mod rgbcw;
+mod scenes;
 mod utils;
 
 use color_eyre::eyre::eyre;

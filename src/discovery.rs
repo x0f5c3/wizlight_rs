@@ -112,35 +112,6 @@ impl BroadcastProtocol {
             Err(e) => warn!("Timeout {e}"),
             _ => {}
         }
-        // while start.elapsed().as_seconds_f64() < DEFAULT_WAIT_TIME {
-        //     let resp = self.recv_msg().await?;
-        //     let to_reg: DiscoveredBulb = resp.try_into()?;
-        //     info!(
-        //         "Discovered bulb with IP {} and MAC: {}",
-        //         to_reg.ip_address, to_reg.mac_address
-        //     );
-        //     self.reg.register(to_reg);
-        //     // let buf = &mut [0u8; 1024];
-        //     // let (n, addr) = self.transport.recv_from(buf).await?;
-        //     // if let SocketAddr::V4(a) = addr {
-        //     //     let ad = a.ip().to_string();
-        //     //     debug!("Received from {ad}");
-        //     //     if !self.local_addrs.contains(&ad) {
-        //     //         info!("Received {} bytes from {}", n, ad);
-        //     //         let res = fs::write(format!("resp_{}.json", &ad), &buf[0..n]);
-        //     //         if let Err(e) = res {
-        //     //             error!("Failed to write response to file: {e}");
-        //     //         }
-        //     //         let resp = deser_msg(&buf[..n], addr)?;
-        //     //         let to_reg: DiscoveredBulb = resp.try_into()?;
-        //     //         info!(
-        //     //             "Discovered bulb with IP {} and MAC: {}",
-        //     //             to_reg.ip_address, to_reg.mac_address
-        //     //         );
-        //     //         self.reg.register(to_reg);
-        //     //     }
-        //     // }
-        // }
         sp.finish_with_message(format!("Discovered {} bulbs", self.reg.bulbs().len()));
         Ok(())
     }
