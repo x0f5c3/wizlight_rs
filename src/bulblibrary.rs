@@ -218,39 +218,3 @@ impl BulbClass {
         Ok(bulb_type)
     }
 }
-
-impl From<&BulbClass> for Features {
-    fn from(value: &BulbClass) -> Self {
-        match value {
-            BulbClass::RGB => Features {
-                color: true,
-                color_tmp: true,
-                effect: true,
-                brightness: true,
-                dual_head: false,
-            },
-
-            BulbClass::TW => Features {
-                color: true,
-                color_tmp: true,
-                effect: true,
-                brightness: true,
-                dual_head: false,
-            },
-            BulbClass::DW => Features {
-                brightness: true,
-                color: false,
-                color_tmp: false,
-                effect: false,
-                dual_head: false,
-            },
-            BulbClass::Socket => Features {
-                color: false,
-                color_tmp: false,
-                effect: false,
-                brightness: false,
-                dual_head: false,
-            },
-        }
-    }
-}

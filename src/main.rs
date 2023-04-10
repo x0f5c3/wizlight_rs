@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 mod bulb;
 mod bulblibrary;
+mod cli;
 mod discovery;
 mod errors;
 mod models;

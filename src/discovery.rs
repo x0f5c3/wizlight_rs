@@ -52,13 +52,6 @@ impl BroadcastProtocol {
                 let ad = a.ip().to_string();
                 if !self.local_addrs.contains(&ad) {
                     info!("Received {} bytes from {}", buf.len(), ad);
-                    // let res = fs::write(
-                    //     format!("resp_{}_{}.json", &ad, get_timestamp()?),
-                    //     &buf[0..n],
-                    // );
-                    // if let Err(e) = res {
-                    //     error!("Failed to write response to file: {e}");
-                    // }
                     return Ok((buf, addr));
                 }
             }

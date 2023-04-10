@@ -35,9 +35,21 @@ impl BulbRegistry {
         let mut w = self.bulbs_by_mac.write();
         w.insert(bulb.mac_address.clone(), bulb);
     }
-    pub fn bulbs(&self) -> Vec<DiscoveredBulb> {
+    pub fn bulbs(&self) -> Vec<&DiscoveredBulb> {
         let r = self.bulbs_by_mac.read();
-        r.par_values().cloned().collect::<Vec<DiscoveredBulb>>()
+        r.par_values().collect::<Vec<&DiscoveredBulb>>()
+    }
+    pub fn inner(&self) -> &HashMap<String, DiscoveredBulb> {
+        &self.bulbs_by_mac.read()
+    }
+    pub fn into_inner(self) -> HashMap<String, DiscoveredBulb> {
+        self.bulbs_by_mac.into_inner()
+    }
+    pub fn is_registered(&self, mac: &str) -> bool {
+        self.bulbs_by_mac.read().contains_key(mac)
+    }
+    pub fn get(&self, mac: &str) -> Option<&DiscoveredBulb> {
+        self.bulbs_by_mac.read().get(mac)
     }
 }
 
