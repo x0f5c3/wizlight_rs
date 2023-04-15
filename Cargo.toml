@@ -15,6 +15,7 @@ features = ["improved_unicode", "rayon", "tokio"]
 
 [dependencies]
 pnet = "0.33.0"
+color-eyre = "0.6.2"
 rayon = "1.7.0"
 buildstructor = "0.5.2"
 thiserror = "1.0.40"

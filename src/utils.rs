@@ -62,3 +62,27 @@ pub fn create_udp(listen_port: u16, reuseaddr: bool, broadcast: bool) -> Result<
     res.set_nonblocking(true)?;
     UdpSocket::from_std(res).map_err(WizError::from)
 }
+
+/// Macro for creating a [map](hashbrown::HashMap).
+///
+/// Equivalent to the [vec!] macro for [vectors](Vec).
+/// Set this [crate's](crate) documentation for more examples on how
+/// to use this macro.
+///
+/// **Example:**
+///
+/// ```rust
+/// use wizlight_rs::map;
+///
+/// let goodbye = map! {
+///     "en" => "Goodbye",
+///     "de" => "Auf Wiedersehen",
+///     "fr" => "Au revoir",
+///     "es" => "Adios",
+/// };
+#[macro_export]
+macro_rules! map {
+    {$($k: expr => $v: expr),* $(,)?} => {
+        hashbrown::HashMap::from([$(($k, $v),)*])
+    };
+}
