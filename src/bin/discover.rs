@@ -1,17 +1,5 @@
-#![allow(dead_code)]
-mod bulb;
-mod bulblibrary;
-mod discovery;
-mod errors;
-mod models;
-mod protocol;
-mod rgbcw;
-mod scenes;
-mod utils;
-
-use color_eyre::eyre::eyre;
-use color_eyre::Result;
-use discovery::BroadcastProtocol;
+use wizlight_rs::discovery::BroadcastProtocol;
+use wizlight_rs::Result;
 
 use tracing::level_filters::LevelFilter;
 use tracing::{info, Level};
@@ -28,8 +16,7 @@ async fn main() -> Result<()> {
         .with_level(true)
         .with_line_number(true)
         .with_file(true)
-        .try_init()
-        .map_err(|e| eyre!("Failed to init subscriber {e}"))?;
+        .try_init()?;
     info!("Initialized subscriber");
     let mut proto = BroadcastProtocol::new(None)?;
     proto.discover().await?;

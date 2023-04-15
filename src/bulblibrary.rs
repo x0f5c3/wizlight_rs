@@ -1,5 +1,6 @@
-use color_eyre::eyre::{eyre, ContextCompat};
-use color_eyre::Result;
+use crate::{Result, WizError};
+use buildstructor::buildstructor;
+
 use rayon::prelude::*;
 
 #[derive(Debug, Default)]
@@ -9,116 +10,105 @@ pub struct Features {
     pub effect: bool,
     pub brightness: bool,
     pub dual_head: bool,
-    pub name: Option<String>,
+    pub name: String,
     pub kelvin_range: Option<KelvinRange>,
     pub fw_version: Option<String>,
     pub white_channels: Option<i64>,
     pub white_to_color_ratio: Option<i64>,
 }
 
+#[buildstructor]
 impl Features {
-    pub fn from_data(
-        module_name: &str,
-        kelvin_list: Option<Vec<f64>>,
+    #[builder]
+    pub fn rgb_new(
+        name: String,
         fw_version: Option<String>,
+        effect: bool,
+        dual_head: bool,
         white_channels: Option<i64>,
         white_to_color_ratio: Option<i64>,
-    ) -> Result<Self> {
-        let ident = module_name
-            .split('_')
-            .nth(1)
-            .ok_or(eyre!("No identifier in {}", module_name))?;
-        let (bulb_type, effect) = {
-            if ident.contains("RGB") {
-                (BulbClass::RGB, true)
-            } else if ident.contains("TW") {
-                (BulbClass::TW, true)
-            } else if ident.contains("SOCKET") {
-                (BulbClass::Socket, false)
-            } else {
-                let eff = ident.contains("DH") || ident.contains("SH");
-                (BulbClass::DW, eff)
-            }
-        };
-        let dual = ident.contains("DH");
-        let k_range = if let Some(mut k_list) = kelvin_list {
-            k_list.par_sort_unstable_by(|a, b| b.partial_cmp(a).unwrap());
-            let min = k_list.last().wrap_err("No minimum value")?;
-            let max = k_list.first().wrap_err("No maximum value")?;
-            Some(KelvinRange::new(*max, *min))
-        } else {
-            None
-        };
-        let mut feat: Features = bulb_type.into();
-        feat.dual_head = dual;
-        feat.effect = effect;
-        feat.fw_version = fw_version;
-        feat.white_channels = white_channels;
-        feat.white_to_color_ratio = white_to_color_ratio;
-        Ok(feat)
-    }
-    pub fn fill_rgb(mut self) -> Self {
-        self.color = true;
-        self.color_tmp = true;
-        self.brightness = true;
-        self
-    }
-    pub fn fill_tw(mut self) -> Self {
-        self.brightness = true;
-        self.color = false;
-        self.color_tmp = true;
-        self
-    }
-    pub fn fill_dw(mut self) -> Self {
-        self.brightness = true;
-        self.color = false;
-        self.color_tmp = false;
-        self
-    }
-    pub fn fill_sock(mut self) -> Self {
-        self.brightness = false;
-        self.color = false;
-        self.color_tmp = false;
-        self
-    }
-    pub fn set_rest(
-        mut self,
-        dual_head: bool,
-        effect: bool,
-        fw_version: Option<String>,
-        white_channels: Option<i64>,
-        white_to_color_ratio: Option<i64>,
-    ) -> Self {
-        self.dual_head = dual_head;
-        self.effect = effect;
-        self.fw_version = fw_version;
-        self.white_channels = white_channels;
-        self.white_to_color_ratio = white_to_color_ratio;
-        self
-    }
-    pub fn new(
-        color: bool,
-        color_tmp: bool,
-        effect: bool,
-        brightness: bool,
-        dual_head: bool,
-        name: Option<String>,
         kelvin_range: Option<KelvinRange>,
-        fw_version: Option<String>,
-        white_channels: Option<i64>,
-        white_to_color_ratio: Option<i64>,
     ) -> Self {
         Self {
-            color,
-            color_tmp,
-            effect,
-            brightness,
-            dual_head,
+            color: true,
+            color_tmp: true,
+            brightness: true,
             name,
-            kelvin_range,
             fw_version,
+            effect,
+            dual_head,
             white_channels,
             white_to_color_ratio,
+            kelvin_range,
+        }
+    }
+    #[builder]
+    pub fn tw_new(
+        name: String,
+        fw_version: Option<String>,
+        effect: bool,
+        dual_head: bool,
+        white_channels: Option<i64>,
+        white_to_color_ratio: Option<i64>,
+        kelvin_range: Option<KelvinRange>,
+    ) -> Self {
+        Self {
+            color: false,
+            color_tmp: true,
+            brightness: true,
+            name,
+            fw_version,
+            effect,
+            dual_head,
+            white_channels,
+            white_to_color_ratio,
+            kelvin_range,
+        }
+    }
+    #[builder]
+    pub fn dw_new(
+        name: String,
+        fw_version: Option<String>,
+        effect: bool,
+        dual_head: bool,
+        white_channels: Option<i64>,
+        white_to_color_ratio: Option<i64>,
+        kelvin_range: Option<KelvinRange>,
+    ) -> Self {
+        Self {
+            color: false,
+            color_tmp: false,
+            brightness: true,
+            name,
+            fw_version,
+            effect,
+            dual_head,
+            white_channels,
+            white_to_color_ratio,
+            kelvin_range,
+        }
+    }
+    #[builder]
+    pub fn sock_new(
+        name: String,
+        fw_version: Option<String>,
+        effect: bool,
+        dual_head: bool,
+        white_channels: Option<i64>,
+        white_to_color_ratio: Option<i64>,
+        kelvin_range: Option<KelvinRange>,
+    ) -> Self {
+        Self {
+            color: false,
+            color_tmp: false,
+            brightness: false,
+            name,
+            fw_version,
+            effect,
+            dual_head,
+            white_channels,
+            white_to_color_ratio,
+            kelvin_range,
         }
     }
 }
@@ -147,7 +137,7 @@ pub enum BulbClass {
     /// RGB Tunable
     ///
     /// Have RGB LEDs.
-    RGB(Features),
+    Rgb(Features),
     /// Socket
     ///
     /// Smart socket with only on/off.
@@ -165,92 +155,64 @@ impl BulbClass {
         let ident = module_name
             .split('_')
             .nth(1)
-            .ok_or(eyre!("No identifier in {}", module_name))?;
+            .ok_or(WizError::NoIdent(module_name.to_string()))?;
         let dual = ident.contains("DH");
         let k_range = if let Some(mut k_list) = kelvin_list {
             k_list.par_sort_unstable_by(|a, b| b.partial_cmp(a).unwrap());
-            let min = k_list.last().wrap_err("No minimum value")?;
-            let max = k_list.first().wrap_err("No maximum value")?;
+            let min = k_list.last().ok_or(WizError::NoMinimum)?;
+            let max = k_list.first().ok_or(WizError::NoMaximum)?;
             Some(KelvinRange::new(*max, *min))
         } else {
             None
         };
         let bulb_type = {
             if ident.contains("RGB") {
-                let feat = Features::default().fill_rgb().set_rest(
-                    dual,
-                    true,
-                    fw_version,
-                    white_channels,
-                    white_to_color_ratio,
-                );
-                BulbClass::RGB(feat)
+                let feat = Features::rgb_builder()
+                    .dual_head(dual)
+                    .effect(true)
+                    .and_fw_version(fw_version)
+                    .and_white_channels(white_channels)
+                    .and_white_to_color_ratio(white_to_color_ratio)
+                    .and_kelvin_range(k_range)
+                    .name(module_name)
+                    .build();
+                BulbClass::Rgb(feat)
             } else if ident.contains("TW") {
-                let feat = Features::default().fill_tw().set_rest(
-                    dual,
-                    true,
-                    fw_version,
-                    white_channels,
-                    white_to_color_ratio,
-                );
+                let feat = Features::tw_builder()
+                    .dual_head(dual)
+                    .effect(true)
+                    .and_fw_version(fw_version)
+                    .and_white_channels(white_channels)
+                    .and_white_to_color_ratio(white_to_color_ratio)
+                    .and_kelvin_range(k_range)
+                    .name(module_name.to_string())
+                    .build();
                 BulbClass::TW(feat)
             } else if ident.contains("SOCKET") {
-                let feat = Features::default().fill_sock().set_rest(
-                    dual,
-                    false,
-                    fw_version,
-                    white_channels,
-                    white_to_color_ratio,
-                );
+                let feat = Features::sock_builder()
+                    .dual_head(dual)
+                    .effect(false)
+                    .and_fw_version(fw_version)
+                    .and_white_channels(white_channels)
+                    .and_white_to_color_ratio(white_to_color_ratio)
+                    .and_kelvin_range(k_range)
+                    .name(module_name.to_string())
+                    .build();
                 BulbClass::Socket(feat)
             } else {
                 let eff = ident.contains("DH") || ident.contains("SH");
-                let feat = Features::default().fill_dw().set_rest(
-                    dual,
-                    eff,
-                    fw_version,
-                    white_channels,
-                    white_to_color_ratio,
-                );
+                let feat = Features::dw_builder()
+                    .dual_head(dual)
+                    .effect(eff)
+                    .and_fw_version(fw_version)
+                    .and_white_channels(white_channels)
+                    .and_white_to_color_ratio(white_to_color_ratio)
+                    .and_kelvin_range(k_range)
+                    .name(module_name.to_string())
+                    .build();
                 BulbClass::DW(feat)
             }
         };
         Ok(bulb_type)
-    }
-}
-
-impl From<&BulbClass> for Features {
-    fn from(value: &BulbClass) -> Self {
-        match value {
-            BulbClass::RGB => Features {
-                color: true,
-                color_tmp: true,
-                effect: true,
-                brightness: true,
-                dual_head: false,
-            },
-
-            BulbClass::TW => Features {
-                color: true,
-                color_tmp: true,
-                effect: true,
-                brightness: true,
-                dual_head: false,
-            },
-            BulbClass::DW => Features {
-                brightness: true,
-                color: false,
-                color_tmp: false,
-                effect: false,
-                dual_head: false,
-            },
-            BulbClass::Socket => Features {
-                color: false,
-                color_tmp: false,
-                effect: false,
-                brightness: false,
-                dual_head: false,
-            },
-        }
     }
 }

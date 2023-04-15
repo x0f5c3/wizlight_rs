@@ -1,5 +1,5 @@
-use color_eyre::eyre::WrapErr;
-use color_eyre::Result;
+use crate::{Result, WizError};
+
 use pnet::datalink::interfaces;
 
 use rayon::prelude::*;
@@ -12,7 +12,7 @@ pub(crate) fn get_timestamp() -> Result<String> {
     let fmt = format_description::parse("[day]_[month]_[year]_[hour]_[minute]")?;
     time::OffsetDateTime::now_local()?
         .format(&fmt)
-        .wrap_err("Failed to format timestamp")
+        .map_err(WizError::from)
 }
 
 pub(crate) fn hex_to_percent(hex_val: f64) -> f64 {
@@ -48,8 +48,7 @@ pub fn get_local_adddrs() -> Vec<String> {
 }
 
 pub fn create_udp(listen_port: u16, reuseaddr: bool, broadcast: bool) -> Result<UdpSocket> {
-    let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
-        .wrap_err("Can't create the socket")?;
+    let sock = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
     if reuseaddr {
         sock.set_reuse_address(true)?;
     }
@@ -61,5 +60,5 @@ pub fn create_udp(listen_port: u16, reuseaddr: bool, broadcast: bool) -> Result<
     sock.bind(&addr)?;
     let res: StdSocket = sock.into();
     res.set_nonblocking(true)?;
-    UdpSocket::from_std(res).wrap_err("Can't convert to tokio socket")
+    UdpSocket::from_std(res).map_err(WizError::from)
 }

@@ -1,9 +1,8 @@
 use crate::models::{BulbRegistry, DiscoveredBulb, RegistrationMessage};
 use crate::utils::{create_udp_broadcast, get_local_adddrs};
 
-use color_eyre::Result;
+use crate::{Result, WizError};
 
-use color_eyre::eyre::WrapErr;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::time::Duration;
@@ -30,7 +29,7 @@ impl BroadcastProtocol {
             .unwrap_or(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::BROADCAST, PORT)));
         let transport = create_udp_broadcast(38899)?;
         debug!("Created the udp socket");
-        let reg = BulbRegistry::new();
+        let reg = BulbRegistry::default();
         Ok(Self {
             reg,
             broadcast_addr,
@@ -106,7 +105,7 @@ impl BroadcastProtocol {
                 }
             })
             .await
-            .wrap_err("Timeout exceeded");
+            .map_err(WizError::TimeOut)?;
         match r {
             Ok(Err(e)) => error!("Error encountered {e}"),
             Err(e) => warn!("Timeout {e}"),
