@@ -1,13 +1,16 @@
 #![allow(dead_code)]
 mod bulb;
 mod bulblibrary;
+mod cli;
 pub mod discovery;
 mod errors;
 mod models;
 mod protocol;
+mod push_manager;
 mod rgbcw;
 mod scenes;
 mod utils;
+
 pub use errors::{Result, WizError};
 /// Macro for creating a [map](hashbrown::HashMap).
 ///

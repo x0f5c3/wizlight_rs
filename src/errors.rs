@@ -1,4 +1,5 @@
 use crate::models::RegistrationMessage;
+use socket2::SockAddr;
 use std::error::Error;
 use thiserror::Error;
 
@@ -32,6 +33,10 @@ pub enum WizError {
     NoMinimum,
     #[error("No maximum value")]
     NoMaximum,
+    #[error("{0:?} is not an IPv4 address")]
+    IP6(SockAddr),
+    #[error("Address parse error: {0}")]
+    AddrParseError(#[from] std::net::AddrParseError),
 }
 
 impl From<Box<dyn std::error::Error + Send + Sync + 'static>> for WizError {

@@ -37,21 +37,22 @@ impl BroadcastProtocol {
             local_addrs: get_local_adddrs(),
         })
     }
-    #[instrument(skip(self))]
-    pub async fn recv_from(&self) -> Result<(Vec<u8>, SocketAddr)> {
-        let mut buf = [0u8; 1024];
-        let (n, addr) = self.transport.recv_from(&mut buf).await?;
-        Ok((buf[0..n].to_vec(), addr))
+    #[instrument(skip(self, buf))]
+    pub async fn recv_from(&self, mut buf: &mut [u8]) -> Result<(usize, SocketAddr)> {
+        let (n, addr) = self.transport.recv_from(buf).await?;
+        buf = buf.split_at_mut(n).0;
+        Ok((n, addr))
     }
     #[instrument(skip(self))]
     pub async fn recv_foreign(&self) -> Result<(Vec<u8>, SocketAddr)> {
         loop {
-            let (buf, addr) = self.recv_from().await?;
+            let mut buf = [0; 1024];
+            let (n, addr) = self.recv_from(&mut buf).await?;
             if let SocketAddr::V4(a) = addr {
                 let ad = a.ip().to_string();
                 if !self.local_addrs.contains(&ad) {
-                    info!("Received {} bytes from {}", buf.len(), ad);
-                    return Ok((buf, addr));
+                    info!("Received {} bytes from {}", n, ad);
+                    return Ok((buf.to_vec(), addr));
                 }
             }
         }
@@ -64,7 +65,7 @@ impl BroadcastProtocol {
         Ok(msg)
     }
     #[instrument(skip(self))]
-    pub async fn discover(&mut self) -> Result<()> {
+    pub async fn discover(&self) -> Result<()> {
         self.transport
             .send_to(REGISTER_MESSAGE.as_bytes(), self.broadcast_addr)
             .await?;
@@ -107,11 +108,4 @@ impl BroadcastProtocol {
         sp.finish_with_message(format!("Discovered {} bulbs", self.reg.bulbs().len()));
         Ok(())
     }
-}
-
-#[instrument(skip(buf))]
-pub(crate) fn deser_msg(buf: &[u8], addr: SocketAddr) -> Result<RegistrationMessage> {
-    let mut resp: RegistrationMessage = serde_json::from_slice(buf)?;
-    resp.ip = Some(addr);
-    Ok(resp)
 }
